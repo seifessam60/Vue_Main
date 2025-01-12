@@ -1,28 +1,37 @@
 <template>
-  <base-card>
-    <form @submit.prevent="submitForm">
-      <div class="form-control">
-        <label for="email">E-Mail</label
-        ><input type="email" name="email" id="email" v-model.trim="email" />
-      </div>
-      <div class="form-control">
-        <label for="password">Password</label
-        ><input
-          type="password"
-          name="password"
-          id="password"
-          v-model.trim="password"
-        />
-      </div>
-      <p v-if="!formIsValid">
-        Please enter a valid email and password. (must be at least 6 characters)
-      </p>
-      <base-button>{{ submitButtonCaption }}</base-button>
-      <base-button type="button" mode="flat" @click="switchAuthMode">{{
-        switchModeButtonCaption
-      }}</base-button>
-    </form>
-  </base-card>
+  <div>
+    <base-dialog :show="!!error" title="An Error Occurred!" @close="handleError"
+      ><p>{{ error }}</p></base-dialog
+    >
+    <base-dialog :show="isLoading" fixed title="Authenticating...">
+      <base-spinner></base-spinner
+    ></base-dialog>
+    <base-card>
+      <form @submit.prevent="submitForm">
+        <div class="form-control">
+          <label for="email">E-Mail</label
+          ><input type="email" name="email" id="email" v-model.trim="email" />
+        </div>
+        <div class="form-control">
+          <label for="password">Password</label
+          ><input
+            type="password"
+            name="password"
+            id="password"
+            v-model.trim="password"
+          />
+        </div>
+        <p v-if="!formIsValid">
+          Please enter a valid email and password. (must be at least 6
+          characters)
+        </p>
+        <base-button>{{ submitButtonCaption }}</base-button>
+        <base-button type="button" mode="flat" @click="switchAuthMode">{{
+          switchModeButtonCaption
+        }}</base-button>
+      </form>
+    </base-card>
+  </div>
 </template>
 
 <script>
@@ -33,6 +42,8 @@ export default {
       password: '',
       formIsValid: true,
       mode: 'login',
+      isLoading: false,
+      error: null,
     };
   },
   computed: {
@@ -52,15 +63,37 @@ export default {
     },
   },
   methods: {
-    submitForm() {
+    async submitForm() {
       this.formIsValid = true;
       if (
         this.email === '' ||
         !this.email.includes('@') ||
         this.password.length < 6
       ) {
+        this.formIsValid = false;
         return;
       }
+      this.isLoading = true;
+      const actionPayload = {
+        email: this.email,
+        password: this.password,
+      };
+      try {
+        if (this.mode === 'login') {
+          await this.$store.dispatch('login', actionPayload);
+        } else {
+          await this.$store.dispatch('signUp', actionPayload);
+        }
+        const redirectUrl = '/' + (this.$route.query.redirect || 'coaches');
+        this.$router.replace(redirectUrl);
+      } catch (error) {
+        this.error =
+          error.message || 'Failed to Authenticate. Please try again!';
+      }
+      this.isLoading = false;
+    },
+    handleError() {
+      this.error = null;
     },
     switchAuthMode() {
       if (this.mode === 'login') {
