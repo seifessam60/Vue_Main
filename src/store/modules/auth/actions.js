@@ -21,10 +21,13 @@ export default {
     });
     const responseData = await response.json();
     if (!response.ok) {
+      console.log(responseData);
       throw new Error(
         responseData.message || 'Failed to Login. Please try again.'
       );
     }
+    console.log(responseData);
+
     const expiresIn = +responseData.expiresIn * 1000;
     const expirationDate = new Date().getTime + expiresIn;
 
